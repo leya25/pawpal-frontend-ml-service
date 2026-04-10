@@ -1,5 +1,4 @@
-export const API_BASE_URL =
-  "https://pawpal-backend-production-064f.up.railway.app";
+export const API_BASE_URL = "http://172.20.10.9:8080";
 
 export async function analyzeImage(photoUri: string) {
   const formData = new FormData();

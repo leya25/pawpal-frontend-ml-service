@@ -63,7 +63,20 @@ async function requestInitialAdvice(options: {
   petName: string;
   petType: PetType;
 }): Promise<AdvicePayload> {
-  const response = await fetch(`${API_BASE_URL}/api/advice`, {
+  const url = `${API_BASE_URL}/api/advice`;
+
+  console.log("=== ADVICE REQUEST START ===");
+  console.log("Advice URL:", url);
+  console.log("Advice payload:", {
+    label: options.label,
+    userEmail: options.userEmail,
+    userId: options.userId,
+    petId: options.petId,
+    petName: options.petName,
+    petType: options.petType,
+  });
+
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -78,11 +91,19 @@ async function requestInitialAdvice(options: {
     }),
   });
 
+  console.log("Advice response status:", response.status);
+  console.log("Advice response ok?:", response.ok);
+
   const responseText = await response.text();
+  console.log("Advice raw response:", responseText);
 
   try {
-    return JSON.parse(responseText);
+    const parsed = JSON.parse(responseText);
+    console.log("Advice parsed response:", parsed);
+    console.log("=== ADVICE REQUEST END ===");
+    return parsed;
   } catch {
+    console.log("Advice response was not valid JSON");
     throw new Error(
       `Advice API did not return JSON. Status=${response.status}. Body=${responseText.slice(0, 200)}`,
     );
@@ -177,6 +198,15 @@ export default function ScanScreen() {
   //runs when the user presses the scan button
   const handleScanPress = async () => {
     try {
+      console.log("=== SCAN START ===");
+      console.log("API_BASE_URL:", API_BASE_URL);
+      console.log("selectedPhotoUri:", selectedPhotoUri);
+      console.log("userEmail:", userEmail);
+      console.log("userId:", userId);
+      console.log("petId:", petId);
+      console.log("petName:", petName);
+      console.log("petType:", petType);
+
       if (!selectedPhotoUri) {
         alert("Pick or take a photo first");
         return;
@@ -194,9 +224,11 @@ export default function ScanScreen() {
 
       setIsSubmittingScan(true);
 
-      //sends the processed image to the backend API
+      console.log("Calling analyzeImage...");
       const analysisResponse = await analyzeImage(selectedPhotoUri);
+      console.log("analyzeImage response:", analysisResponse);
 
+      console.log("Calling requestInitialAdvice...");
       const advice = await requestInitialAdvice({
         label: analysisResponse.label,
         userEmail,
@@ -205,24 +237,32 @@ export default function ScanScreen() {
         petName,
         petType,
       });
+      console.log("Advice result:", advice);
+
+      const pushParams = {
+        pet: petType,
+        petId,
+        petName,
+        userId,
+        userEmail,
+        label: (analysisResponse.label ?? "").toString(),
+        historyId: String(advice.historyId ?? analysisResponse.historyId ?? ""),
+        advice: JSON.stringify(advice),
+      };
+
+      console.log("Navigating to /scan-result with params:", pushParams);
 
       router.push({
         pathname: "/scan-result",
-        params: {
-          pet: petType,
-          petId,
-          petName,
-          userId,
-          userEmail,
-          label: (analysisResponse.label ?? "").toString(),
-          historyId: String(
-            advice.historyId ?? analysisResponse.historyId ?? "",
-          ),
-          advice: JSON.stringify(advice),
-        },
+        params: pushParams,
       });
+
+      console.log("=== SCAN END SUCCESS ===");
     } catch (error: any) {
-      console.log("SCAN ERROR:", error?.message ?? error);
+      console.log("=== SCAN END FAILURE ===");
+      console.log("SCAN ERROR full object:", error);
+      console.log("SCAN ERROR message:", error?.message ?? error);
+      console.log("SCAN ERROR stack:", error?.stack);
       alert(`Scan failed: ${error?.message ?? error}`);
     } finally {
       setIsSubmittingScan(false);

@@ -8,6 +8,7 @@ COLAB_QWEN_URL = "https://janae-presentative-unsmokily.ngrok-free.dev"
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
     contents = await file.read()
+    
 
     try:        
         #send the image file to the Qwen model hosted on Google Colab                                
